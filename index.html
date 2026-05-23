@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jurnal G - Professional PWA</title>
+    <title>Jurnal G - Live Sync</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -16,35 +16,30 @@
         :root { --primary: #2c3e50; --secondary: #3498db; --success: #27ae60; }
         body { font-family: 'Segoe UI', sans-serif; font-size: 1.2rem; background: #f4f7f6; margin: 0; padding: 15px; }
         .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        h2, h3 { color: var(--primary); text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .btn { padding: 16px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 10px; margin: 8px 0; color: white; width: 100%; font-weight: bold; transition: 0.3s; }
+        .btn { padding: 16px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 10px; margin: 8px 0; color: white; width: 100%; font-weight: bold; }
         .btn-blue { background: var(--secondary); }
         .btn-green { background: var(--success); }
         .btn-red { background: #e74c3c; }
-        .btn:active { transform: scale(0.98); }
-        .input-field { width: 100%; padding: 14px; margin: 10px 0; font-size: 1.1rem; border: 2px solid #dcdde1; border-radius: 10px; box-sizing: border-box; outline: none; }
-        .input-field:focus { border-color: var(--secondary); }
+        .input-field { width: 100%; padding: 14px; margin: 10px 0; font-size: 1.1rem; border: 2px solid #dcdde1; border-radius: 10px; box-sizing: border-box; }
         #login-screen, #main-menu, #add-record, #view-records, #settings { display: none; }
         .active { display: block !important; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background: var(--primary); color: white; }
-        tr:nth-child(even) { background: #f9f9f9; }
-        .back-btn { background: #7f8c8d; width: auto; padding: 8px 15px; margin-bottom: 15px; }
+        th { background: var(--primary); color: white; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="login-screen" class="active">
-        <h2>Jurnal G Login</h2>
+        <h2 style="text-align:center">Jurnal G Login</h2>
         <input type="text" id="username" placeholder="Username" class="input-field">
         <input type="password" id="password" placeholder="Password" class="input-field">
         <button class="btn btn-blue" onclick="checkLogin()">Login</button>
     </div>
 
     <div id="main-menu">
-        <h2>Dashboard</h2>
+        <h2 id="welcome-msg">Dashboard</h2>
         <button class="btn btn-blue" onclick="showScreen('add-record')">➕ Add New Record</button>
         <button class="btn btn-blue" onclick="showScreen('view-records')">📊 View Reports</button>
         <button class="btn btn-blue" onclick="showScreen('settings')">⚙️ Settings</button>
@@ -52,38 +47,44 @@
     </div>
 
     <div id="settings">
-        <button class="btn back-btn" onclick="showScreen('main-menu')">← Back</button>
-        <h3>Account Management</h3>
-        <input type="text" id="new-account" class="input-field" placeholder="Account Name (e.g. Cash, Bank)">
-        <button class="btn btn-green" onclick="saveAccount()">Add Account</button>
-        <div id="acc-list" style="margin-top:20px; color: #666;"></div>
+        <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
+        <h3>Settings</h3>
+        <input type="text" id="new-account" class="input-field" placeholder="Create Account Name">
+        <button class="btn btn-green" onclick="saveAccount()">Save Account</button>
+        <div id="acc-list" style="margin-top:20px;"></div>
     </div>
 
     <div id="add-record">
-        <button class="btn back-btn" onclick="showScreen('main-menu')">← Back</button>
+        <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
         <h3>New Transaction</h3>
         <input type="text" id="date" class="input-field" placeholder="DD/MM/YY">
-        <select id="acc-dropdown" class="input-field"><option value="">Select Account</option></select>
+        <select id="acc-dropdown" class="input-field"></select>
         <input type="text" id="sub-acc" class="input-field" placeholder="Sub-Account">
         <input type="text" id="desc" class="input-field" placeholder="Description">
-        <input type="number" id="debit" class="input-field" placeholder="Debit Amount">
-        <input type="number" id="credit" class="input-field" placeholder="Credit Amount">
+        <input type="number" id="debit" class="input-field" placeholder="Debit">
+        <input type="number" id="credit" class="input-field" placeholder="Credit">
         <textarea id="narration" class="input-field" placeholder="Narration"></textarea>
         <input type="text" id="status" class="input-field" placeholder="Status">
-        <button class="btn btn-green" onclick="saveEntry()">Save Entry</button>
+        <button class="btn btn-green" onclick="saveEntry()">Save & Sync</button>
     </div>
 
     <div id="view-records">
-        <button class="btn back-btn" onclick="showScreen('main-menu')">← Back</button>
-        <h3>All Records</h3>
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <button class="btn btn-green" style="flex:1" onclick="exportExcel()">Excel</button>
-            <button class="btn btn-blue" style="flex:1" onclick="exportPDF()">PDF (A4)</button>
+        <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
+        <h3>Reports</h3>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-green" onclick="exportExcel()">Excel</button>
+            <button class="btn btn-blue" onclick="exportPDF()">PDF (A4)</button>
         </div>
         <div style="overflow-x:auto;">
-            <table>
+            <table id="myTable">
                 <thead>
-                    <tr><th>Date</th><th>Acc</th><th>Dr</th><th>Cr</th><th>Ref</th></tr>
+                    <tr>
+                        <th onclick="sortTable(0)">Date ⇅</th>
+                        <th>Account</th>
+                        <th>Dr</th>
+                        <th>Cr</th>
+                        <th>Ref</th>
+                    </tr>
                 </thead>
                 <tbody id="table-body"></tbody>
             </table>
@@ -92,72 +93,66 @@
 </div>
 
 <script>
-    // --- Configuration ---
+    // --- 1. FIREBASE INITIALIZATION ---
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY", // Yahan apni key dalein
-        authDomain: "your-project.firebaseapp.com",
-        projectId: "your-project",
-        storageBucket: "your-project.appspot.com",
-        messagingSenderId: "0000000000",
-        appId: "your-app-id"
+        apiKey: "AIzaSyDDrN7x1Gppn9rqgMwf6mfUh6Q9x_X5fQA",
+        authDomain: "umair-account-personal.firebaseapp.com",
+        projectId: "umair-account-personal",
+        storageBucket: "umair-account-personal.firebasestorage.app",
+        messagingSenderId: "226753628780",
+        appId: "1:226753628780:web:1e16215fdf948c3b602649",
+        measurementId: "G-3XL4QJ8JQB"
     };
 
-    // Firebase Initialization with safety check
-    let db = null;
-    try {
-        if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            console.log("Firebase Connected");
-        }
-    } catch(e) { console.error("Firebase Error:", e); }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    let entries = JSON.parse(localStorage.getItem('entries')) || [];
+    let entries = [];
     let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
 
-    // --- Auth ---
+    // Fetch Data from Firebase on Start
+    db.collection("journal").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+        entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderTable();
+    });
+
+    // --- 2. AUTH ---
     function checkLogin() {
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        if(u === "Umair" && p === "3599181") {
+        if(document.getElementById('username').value === "Umair" && 
+           document.getElementById('password').value === "3599181") {
             showScreen('main-menu');
-        } else { alert("Invalid Credentials!"); }
+        } else { alert("Ghalat Password!"); }
     }
 
-    // --- Navigation ---
+    // --- 3. NAVIGATION ---
     function showScreen(id) {
         document.querySelectorAll('.container > div').forEach(div => div.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        if(id === 'add-record') prepareAddForm();
-        if(id === 'view-records') renderTable();
-        if(id === 'settings') renderSettings();
+        if(id === 'add-record') prepareAdd();
+        if(id === 'settings') renderAccList();
     }
 
-    // --- Logic ---
+    // --- 4. LOGIC ---
     function saveAccount() {
-        const acc = document.getElementById('new-account').value;
-        if(acc) {
-            accounts.push(acc);
+        const val = document.getElementById('new-account').value;
+        if(val) {
+            accounts.push(val);
             localStorage.setItem('accounts', JSON.stringify(accounts));
             document.getElementById('new-account').value = '';
-            renderSettings();
-            alert("Account Added!");
+            renderAccList();
+            alert("Account Saved!");
         }
     }
 
-    function renderSettings() {
-        document.getElementById('acc-list').innerHTML = "<strong>Accounts:</strong> " + 
-            (accounts.length ? accounts.join(', ') : 'No accounts created yet.');
+    function renderAccList() {
+        document.getElementById('acc-list').innerHTML = "<b>Current Accounts:</b> " + accounts.join(', ');
     }
 
-    function prepareAddForm() {
+    function prepareAdd() {
         const drop = document.getElementById('acc-dropdown');
-        drop.innerHTML = '<option value="">Select Account</option>' + 
-            accounts.map(a => `<option value="${a}">${a}</option>`).join('');
-        
+        drop.innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join('');
         let t = new Date();
-        let dateStr = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear().toString().slice(-2)}`;
-        document.getElementById('date').value = dateStr;
+        document.getElementById('date').value = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear().toString().slice(-2)}`;
     }
 
     async function saveEntry() {
@@ -165,27 +160,20 @@
             date: document.getElementById('date').value,
             account: document.getElementById('acc-dropdown').value,
             sub: document.getElementById('sub-acc').value,
-            debit: document.getElementById('debit').value || 0,
-            credit: document.getElementById('credit').value || 0,
+            debit: Number(document.getElementById('debit').value) || 0,
+            credit: Number(document.getElementById('credit').value) || 0,
             ref: entries.length + 1,
             status: document.getElementById('status').value,
-            createdAt: new Date().toISOString()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        if(!entry.account) return alert("Pehle Account select karein!");
-
-        // Save locally
-        entries.push(entry);
-        localStorage.setItem('entries', JSON.stringify(entries));
-
-        // Save to Firebase if available
-        if(db) {
-            try { await db.collection('journal').add(entry); } 
-            catch(e) { console.log("Firebase sync failed, saved locally."); }
+        try {
+            await db.collection("journal").add(entry);
+            alert("Sync Successful! Ref: " + entry.ref);
+            showScreen('main-menu');
+        } catch(e) {
+            alert("Error: " + e.message);
         }
-
-        alert("Record Saved! Ref: " + entry.ref);
-        showScreen('main-menu');
     }
 
     function renderTable() {
@@ -198,28 +186,32 @@
                 <td>${e.credit}</td>
                 <td>${e.ref}</td>
             </tr>
-        `).reverse().join(''); // Latest entries on top
+        `).join('');
     }
 
-    // --- Export ---
+    // --- 5. EXPORTS ---
     function exportExcel() {
         const ws = XLSX.utils.json_to_sheet(entries);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "JurnalG");
-        XLSX.writeFile(wb, "Journal_Report.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, "Jurnal_Report.xlsx");
     }
 
     function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Journal G Report", 14, 20);
+        doc.text("Journal G - Full Report", 14, 15);
         doc.autoTable({
-            startY: 30,
-            head: [['Date', 'Account', 'Debit', 'Credit', 'Ref']],
+            startY: 20,
+            head: [['Date', 'Account', 'Dr', 'Cr', 'Ref']],
             body: entries.map(e => [e.date, e.account, e.debit, e.credit, e.ref])
         });
         doc.save("Report_A4.pdf");
+    }
+
+    function sortTable(n) {
+        entries.sort((a, b) => (Object.values(a)[n] > Object.values(b)[n]) ? 1 : -1);
+        renderTable();
     }
 </script>
 </body>
