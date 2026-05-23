@@ -3,29 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jurnal G - Live Sync</title>
+    <title>Jurnal G - Professional PWA</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <style>
         :root { --primary: #2c3e50; --secondary: #3498db; --success: #27ae60; }
-        body { font-family: 'Segoe UI', sans-serif; font-size: 1.2rem; background: #f4f7f6; margin: 0; padding: 15px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        .btn { padding: 16px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 10px; margin: 8px 0; color: white; width: 100%; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; font-size: 1.2rem; background: #f4f7f6; margin: 0; padding: 10px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn { padding: 15px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; margin: 5px 0; color: white; width: 100%; font-weight: bold; }
         .btn-blue { background: var(--secondary); }
         .btn-green { background: var(--success); }
         .btn-red { background: #e74c3c; }
-        .input-field { width: 100%; padding: 14px; margin: 10px 0; font-size: 1.1rem; border: 2px solid #dcdde1; border-radius: 10px; box-sizing: border-box; }
+        .input-field, select { width: 100%; padding: 12px; margin: 8px 0; font-size: 1.1rem; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; }
         #login-screen, #main-menu, #add-record, #view-records, #settings { display: none; }
         .active { display: block !important; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background: var(--primary); color: white; cursor: pointer; }
+        
+        /* Table Styling */
+        .table-container { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9rem; }
+        th { background: var(--primary); color: white; cursor: pointer; position: sticky; top: 0; }
+        .search-input { width: 90%; padding: 5px; margin-top: 5px; font-size: 0.8rem; color: black; }
+        
+        .filter-group { background: #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .filter-group input, .filter-group select { width: auto; flex: 1; min-width: 150px; }
     </style>
 </head>
 <body>
@@ -39,24 +45,24 @@
     </div>
 
     <div id="main-menu">
-        <h2 id="welcome-msg">Dashboard</h2>
-        <button class="btn btn-blue" onclick="showScreen('add-record')">➕ Add New Record</button>
-        <button class="btn btn-blue" onclick="showScreen('view-records')">📊 View Reports</button>
+        <h2>Dashboard</h2>
+        <button class="btn btn-blue" onclick="showScreen('add-record')">➕ Add Record</button>
+        <button class="btn btn-blue" onclick="showScreen('view-records')">📊 View Reports & Filters</button>
         <button class="btn btn-blue" onclick="showScreen('settings')">⚙️ Settings</button>
         <button class="btn btn-red" onclick="location.reload()">Logout</button>
     </div>
 
     <div id="settings">
         <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
-        <h3>Settings</h3>
-        <input type="text" id="new-account" class="input-field" placeholder="Create Account Name">
-        <button class="btn btn-green" onclick="saveAccount()">Save Account</button>
-        <div id="acc-list" style="margin-top:20px;"></div>
+        <h3>Account Settings</h3>
+        <input type="text" id="new-account" class="input-field" placeholder="Enter Account Name (e.g. Cash)">
+        <button class="btn btn-green" onclick="saveAccount()">Create Account</button>
+        <div id="acc-list-display" style="margin-top:15px; font-weight:bold;"></div>
     </div>
 
     <div id="add-record">
         <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
-        <h3>New Transaction</h3>
+        <h3>Add Entry</h3>
         <input type="text" id="date" class="input-field" placeholder="DD/MM/YY">
         <select id="acc-dropdown" class="input-field"></select>
         <input type="text" id="sub-acc" class="input-field" placeholder="Sub-Account">
@@ -70,20 +76,31 @@
 
     <div id="view-records">
         <button class="btn btn-red" style="width:auto" onclick="showScreen('main-menu')">← Back</button>
-        <h3>Reports</h3>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-green" onclick="exportExcel()">Excel</button>
-            <button class="btn btn-blue" onclick="exportPDF()">PDF (A4)</button>
+        <h3>Data Reports</h3>
+        
+        <div class="filter-group">
+            <input type="date" id="f-start" title="Start Date">
+            <input type="date" id="f-end" title="End Date">
+            <select id="f-acc-select"><option value="">All Accounts</option></select>
+            <button class="btn-blue" style="padding:10px;" onclick="applyFilters()">Apply Filters</button>
         </div>
-        <div style="overflow-x:auto;">
-            <table id="myTable">
+
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="btn-green" style="flex:1; border-radius:8px; border:none; color:white;" onclick="exportExcel()">Excel</button>
+            <button class="btn-blue" style="flex:1; border-radius:8px; border:none; color:white;" onclick="exportPDF()">PDF (A4)</button>
+        </div>
+
+        <div class="table-container">
+            <table id="jurnalTable">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(0)">Date ⇅</th>
-                        <th>Account</th>
+                        <th onclick="sortTable(0)">Date ⇅ <br><input type="text" class="search-input" onkeyup="filterTable(0, this)" placeholder="Search.."></th>
+                        <th onclick="sortTable(1)">Account ⇅ <br><input type="text" class="search-input" onkeyup="filterTable(1, this)" placeholder="Search.."></th>
+                        <th>Sub-Acc <br><input type="text" class="search-input" onkeyup="filterTable(2, this)" placeholder="Search.."></th>
                         <th>Dr</th>
                         <th>Cr</th>
                         <th>Ref</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody id="table-body"></tbody>
@@ -93,65 +110,61 @@
 </div>
 
 <script>
-    // --- 1. FIREBASE INITIALIZATION ---
+    // --- Firebase Config ---
     const firebaseConfig = {
         apiKey: "AIzaSyDDrN7x1Gppn9rqgMwf6mfUh6Q9x_X5fQA",
         authDomain: "umair-account-personal.firebaseapp.com",
         projectId: "umair-account-personal",
         storageBucket: "umair-account-personal.firebasestorage.app",
         messagingSenderId: "226753628780",
-        appId: "1:226753628780:web:1e16215fdf948c3b602649",
-        measurementId: "G-3XL4QJ8JQB"
+        appId: "1:226753628780:web:1e16215fdf948c3b602649"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let entries = [];
+    let allData = [];
     let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
 
-    // Fetch Data from Firebase on Start
+    // Real-time listener from Firebase
     db.collection("journal").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
-        entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderTable();
+        allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderTable(allData);
     });
 
-    // --- 2. AUTH ---
     function checkLogin() {
-        if(document.getElementById('username').value === "Umair" && 
-           document.getElementById('password').value === "3599181") {
+        if(document.getElementById('username').value === "Umair" && document.getElementById('password').value === "3599181") {
             showScreen('main-menu');
-        } else { alert("Ghalat Password!"); }
+        } else { alert("Access Denied!"); }
     }
 
-    // --- 3. NAVIGATION ---
     function showScreen(id) {
-        document.querySelectorAll('.container > div').forEach(div => div.classList.remove('active'));
+        document.querySelectorAll('.container > div').forEach(d => d.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         if(id === 'add-record') prepareAdd();
-        if(id === 'settings') renderAccList();
-    }
-
-    // --- 4. LOGIC ---
-    function saveAccount() {
-        const val = document.getElementById('new-account').value;
-        if(val) {
-            accounts.push(val);
-            localStorage.setItem('accounts', JSON.stringify(accounts));
-            document.getElementById('new-account').value = '';
-            renderAccList();
-            alert("Account Saved!");
+        if(id === 'settings') {
+            document.getElementById('acc-list-display').innerText = "Accounts: " + accounts.join(', ');
+        }
+        if(id === 'view-records') {
+            const fSel = document.getElementById('f-acc-select');
+            fSel.innerHTML = '<option value="">All Accounts</option>' + accounts.map(a => `<option value="${a}">${a}</option>`).join('');
         }
     }
 
-    function renderAccList() {
-        document.getElementById('acc-list').innerHTML = "<b>Current Accounts:</b> " + accounts.join(', ');
+    function saveAccount() {
+        const acc = document.getElementById('new-account').value;
+        if(acc) {
+            accounts.push(acc);
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            document.getElementById('new-account').value = '';
+            showScreen('settings');
+            alert("Account Created!");
+        }
     }
 
     function prepareAdd() {
-        const drop = document.getElementById('acc-dropdown');
-        drop.innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join('');
-        let t = new Date();
+        document.getElementById('acc-dropdown').innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+        const t = new Date();
         document.getElementById('date').value = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear().toString().slice(-2)}`;
     }
 
@@ -160,58 +173,90 @@
             date: document.getElementById('date').value,
             account: document.getElementById('acc-dropdown').value,
             sub: document.getElementById('sub-acc').value,
+            desc: document.getElementById('desc').value,
             debit: Number(document.getElementById('debit').value) || 0,
             credit: Number(document.getElementById('credit').value) || 0,
-            ref: entries.length + 1,
+            ref: allData.length + 1,
+            narration: document.getElementById('narration').value,
             status: document.getElementById('status').value,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
-
-        try {
-            await db.collection("journal").add(entry);
-            alert("Sync Successful! Ref: " + entry.ref);
-            showScreen('main-menu');
-        } catch(e) {
-            alert("Error: " + e.message);
-        }
+        if(!entry.account) return alert("Select Account first!");
+        await db.collection("journal").add(entry);
+        alert("Saved & Synced!");
+        showScreen('main-menu');
     }
 
-    function renderTable() {
-        const body = document.getElementById('table-body');
-        body.innerHTML = entries.map(e => `
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = data.map(e => `
             <tr>
                 <td>${e.date}</td>
                 <td>${e.account}</td>
+                <td>${e.sub || ''}</td>
                 <td>${e.debit}</td>
                 <td>${e.credit}</td>
                 <td>${e.ref}</td>
+                <td>${e.status || ''}</td>
             </tr>
         `).join('');
     }
 
-    // --- 5. EXPORTS ---
+    // --- Search Logic ---
+    function filterTable(colIdx, input) {
+        const filter = input.value.toUpperCase();
+        const rows = document.getElementById("table-body").getElementsByTagName("tr");
+        for (let i = 0; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName("td")[colIdx];
+            if (td) {
+                const text = td.textContent || td.innerText;
+                rows[i].style.display = text.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+    }
+
+    // --- Date & Account Filters ---
+    function applyFilters() {
+        const start = document.getElementById('f-start').value;
+        const end = document.getElementById('f-end').value;
+        const acc = document.getElementById('f-acc-select').value;
+        
+        let filtered = allData;
+        if(acc) filtered = filtered.filter(d => d.account === acc);
+        // Date filtering logic can be added here if dates are stored in ISO format
+        renderTable(filtered);
+    }
+
+    // --- Sorting ---
+    let sortOrder = true;
+    function sortTable(colIdx) {
+        sortOrder = !sortOrder;
+        allData.sort((a, b) => {
+            let valA = Object.values(a)[colIdx];
+            let valB = Object.values(b)[colIdx];
+            return sortOrder ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+        });
+        renderTable(allData);
+    }
+
+    // --- Reports ---
     function exportExcel() {
-        const ws = XLSX.utils.json_to_sheet(entries);
+        const ws = XLSX.utils.json_to_sheet(allData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data");
-        XLSX.writeFile(wb, "Jurnal_Report.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Journal");
+        XLSX.writeFile(wb, "Jurnal_G_Report.xlsx");
     }
 
     function exportPDF() {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("Journal G - Full Report", 14, 15);
+        const doc = new jsPDF('p', 'mm', 'a4');
+        doc.text("Jurnal G Report", 14, 15);
         doc.autoTable({
             startY: 20,
-            head: [['Date', 'Account', 'Dr', 'Cr', 'Ref']],
-            body: entries.map(e => [e.date, e.account, e.debit, e.credit, e.ref])
+            head: [['Date', 'Account', 'Sub-Acc', 'Dr', 'Cr', 'Ref']],
+            body: allData.map(e => [e.date, e.account, e.sub, e.debit, e.credit, e.ref])
         });
         doc.save("Report_A4.pdf");
-    }
-
-    function sortTable(n) {
-        entries.sort((a, b) => (Object.values(a)[n] > Object.values(b)[n]) ? 1 : -1);
-        renderTable();
     }
 </script>
 </body>
