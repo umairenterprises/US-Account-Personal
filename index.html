@@ -3,8 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jurnal G - Business Pro</title>
+    <title>Jurnal G - Business Pro Ledger</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Jurnal G">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -12,127 +19,398 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <style>
-        :root { --pro-blue: #1a73e8; --pro-bg: #f8f9fa; --pro-text: #202124; }
-        body { font-family: 'Google Sans', Roboto, Arial; background: var(--pro-bg); margin: 0; color: var(--pro-text); }
-        .container { max-width: 1200px; margin: auto; padding: 20px; }
-        
-        /* Modern UI */
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 20px; }
-        .btn { padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 1rem; }
-        .btn-primary { background: var(--pro-blue); color: white; width: 100%; margin: 5px 0; }
-        .btn-ghost { background: transparent; color: var(--pro-blue); border: 1px solid var(--pro-blue); }
-        
-        .input-field { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        
-        /* Interactive Table */
-        .table-wrap { overflow-x: auto; border: 1px solid #eee; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; background: white; }
-        th { background: #f1f3f4; padding: 12px; text-align: left; position: relative; resize: horizontal; overflow: auto; border: 1px solid #ddd; }
-        td { padding: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; }
-        
-        #login-screen, #main-menu, #add-record, #view-records, #settings { display: none; }
-        .active { display: block !important; }
-        
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .search-box { width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; }
+        :root {
+            --primary: #1a73e8;
+            --debit-accent: #0f9d58;
+            --credit-accent: #db4437;
+            --dark-bg: #202124;
+            --light-bg: #f8f9fa;
+            --card-border: #dadce0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: var(--light-bg);
+            margin: 0;
+            padding: 0;
+            font-size: 1.15rem;
+            color: var(--dark-bg);
+        }
+
+       .navbar {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+       .navbar h1 { margin: 0; font-size: 1.5rem; }
+
+       .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+       .card {
+            background: white;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+
+       .btn {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+       .btn-primary { background: var(--primary); color: white; }
+       .btn-primary:hover { background: #1557b0; }
+       .btn-success { background: var(--debit-accent); color: white; }
+       .btn-danger { background: var(--credit-accent); color: white; }
+       .btn-ghost { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+       .btn-ghost:hover { background: rgba(26,115,232,0.05); }
+
+       .form-section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--card-border);
+        }
+
+       .debit-header { color: var(--debit-accent); border-bottom-color: var(--debit-accent); }
+       .credit-header { color: var(--credit-accent); border-bottom-color: var(--credit-accent); }
+
+       .voucher-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+           .voucher-grid { grid-template-columns: 1fr; }
+        }
+
+       .input-group {
+            margin-bottom: 15px;
+        }
+
+       .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+       .input-field {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+            background: white;
+        }
+
+       .input-field:focus {
+            border-color: var(--primary);
+        }
+
+        /* Responsive Resizable Table UI */
+       .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            background: white;
+            position: relative;
+        }
+
+        table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 100%;
+            min-width: 1200px;
+        }
+
+        th, td {
+            border: 1px solid var(--card-border);
+            padding: 10px;
+            font-size: 0.95rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f1f3f4;
+            position: relative;
+            user-select: none;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        /* Drag handle style */
+       .resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+        }
+
+       .resizer:hover {
+            background: rgba(26,115,232,0.3);
+        }
+
+       .sort-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0;
+            color: #5f6368;
+            margin-left: 5px;
+        }
+
+       .search-col {
+            width: 100%;
+            padding: 6px;
+            font-size: 0.85rem;
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+
+        /* Filter Control Area */
+       .filter-panel {
+            background: #f1f3f4;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+
+        /* Hide Screens initially */
+       .app-screen { display: none; }
+       .app-screen.active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="login-screen" class="active">
-        <div class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
-            <h2>Jurnal G</h2>
-            <p>Professional Accounting App</p>
-            <input type="text" id="username" placeholder="Username" class="input-field">
-            <input type="password" id="password" placeholder="Password" class="input-field">
-            <button class="btn btn-primary" onclick="checkLogin()">Login</button>
-        </div>
-    </div>
-
-    <div id="main-menu">
-        <div class="header-bar">
-            <h2>Welcome, Umair</h2>
-            <button class="btn btn-ghost" onclick="location.reload()">Logout</button>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <div class="card" onclick="showScreen('add-record')" style="cursor:pointer; text-align:center;">
-                <h3 style="color:var(--pro-blue)">➕ Add Record</h3>
-            </div>
-            <div class="card" onclick="showScreen('view-records')" style="cursor:pointer; text-align:center;">
-                <h3 style="color:var(--pro-blue)">📊 View Reports</h3>
-            </div>
-            <div class="card" onclick="showScreen('settings')" style="cursor:pointer; text-align:center;">
-                <h3 style="color:var(--pro-blue)">⚙️ Settings</h3>
-            </div>
-        </div>
-    </div>
-
-    <div id="settings">
-        <button class="btn btn-ghost" onclick="showScreen('main-menu')">← Back</button>
-        <div class="card">
-            <h3>Account Settings</h3>
-            <input type="text" id="new-account" class="input-field" placeholder="Account Name (e.g., Bank Alfalah)">
-            <button class="btn btn-primary" onclick="saveAccountToFirebase()">Create & Sync Account</button>
-            <hr>
-            <h4>Active Accounts:</h4>
-            <div id="firebase-acc-list">Loading...</div>
-        </div>
-    </div>
-
-    <div id="add-record">
-        <button class="btn btn-ghost" onclick="showScreen('main-menu')">← Back</button>
-        <div class="card">
-            <h3>Double Entry Record</h3>
-            <input type="text" id="date" class="input-field" placeholder="DD/MM/YY">
-            <select id="acc-dropdown" class="input-field"></select>
-            <input type="text" id="sub-acc" class="input-field" placeholder="Sub-Account">
-            <input type="text" id="desc" class="input-field" placeholder="Description">
-            <input type="number" id="amount" class="input-field" placeholder="Transaction Amount">
-            <select id="entry-type" class="input-field">
-                <option value="dr-cr">Debit & Credit (Dual Entry)</option>
-                <option value="dr">Only Debit</option>
-                <option value="cr">Only Credit</option>
-            </select>
-            <textarea id="narration" class="input-field" placeholder="Narration"></textarea>
-            <input type="text" id="status" class="input-field" placeholder="Status">
-            <button class="btn btn-primary" onclick="saveDoubleEntry()">Post Transaction</button>
-        </div>
-    </div>
-
-    <div id="view-records">
-        <button class="btn btn-ghost" onclick="showScreen('main-menu')">← Back</button>
-        <div class="card">
-            <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap:wrap;">
-                <h3>Financial Journal</h3>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn btn-ghost" onclick="exportPDF()">Export PDF (A4)</button>
-                    <button class="btn btn-ghost" onclick="exportExcel()">Excel</button>
-                </div>
-            </div>
-            
-            <div class="table-wrap">
-                <table id="journalTable">
-                    <thead>
-                        <tr>
-                            <th>Date <input type="text" class="search-box" onkeyup="tableSearch(0, this)" placeholder="🔍"></th>
-                            <th>Account <input type="text" class="search-box" onkeyup="tableSearch(1, this)" placeholder="🔍"></th>
-                            <th>Sub-Acc <input type="text" class="search-box" onkeyup="tableSearch(2, this)" placeholder="🔍"></th>
-                            <th>Debit <input type="text" class="search-box" onkeyup="tableSearch(3, this)" placeholder="🔍"></th>
-                            <th>Credit <input type="text" class="search-box" onkeyup="tableSearch(4, this)" placeholder="🔍"></th>
-                            <th>Ref <input type="text" class="search-box" onkeyup="tableSearch(5, this)" placeholder="🔍"></th>
-                            <th>Status <input type="text" class="search-box" onkeyup="tableSearch(6, this)" placeholder="🔍"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body"></tbody>
-                </table>
-            </div>
-        </div>
+<div class="navbar">
+    <h1 onclick="showScreen('main-menu')" style="cursor:pointer">Jurnal G - Professional</h1>
+    <div>
+        <span id="network-status" style="font-size:0.9rem; margin-right: 15px; color:#c6ff00">Online</span>
+        <button class="btn btn-ghost" style="color:white; border-color:white; padding: 6px 12px;" onclick="location.reload()">Logout</button>
     </div>
 </div>
 
+<div class="container">
+    
+    <div id="login-screen" class="app-screen active">
+        <div class="card" style="max-width: 450px; margin: 80px auto; text-align: center;">
+            <img src="https://cdn-icons-png.flaticon.com/512/1061/1061380.png" width="80" style="margin-bottom:15px;">
+            <h2>Umair Account Access</h2>
+            <p style="color:#5f6368;">G Share bookkeeping system pro layout</p>
+            <input type="text" id="username" placeholder="Username" class="input-field" style="margin-bottom:12px;">
+            <input type="password" id="password" placeholder="Password" class="input-field" style="margin-bottom:20px;">
+            <button class="btn btn-primary" onclick="checkLogin()" style="width:100%">Login</button>
+        </div>
+    </div>
+
+    <div id="main-menu" class="app-screen">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2>Financial Dashboard</h2>
+            <div>
+                <button class="btn btn-primary" onclick="showScreen('add-record')">➕ Post Voucher</button>
+                <button class="btn btn-ghost" onclick="showScreen('settings')">⚙️ Chart of Accounts</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px; margin-bottom: 30px;">
+            <div class="card" style="border-left: 6px solid var(--debit-accent); cursor:pointer;" onclick="showScreen('view-records')">
+                <span style="color:#5f6368;">Posted Debits</span>
+                <h1 id="total-debits-display">Rs. 0</h1>
+            </div>
+            <div class="card" style="border-left: 6px solid var(--credit-accent); cursor:pointer;" onclick="showScreen('view-records')">
+                <span style="color:#5f6368;">Posted Credits</span>
+                <h1 id="total-credits-display">Rs. 0</h1>
+            </div>
+            <div class="card" style="border-left: 6px solid var(--primary); cursor:pointer;" onclick="showScreen('view-records')">
+                <span style="color:#5f6368;">Total Journal Rows</span>
+                <h1 id="total-rows-display">0</h1>
+            </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; height:70px; font-size:1.3rem;" onclick="showScreen('view-records')">📊 View All Ledger & Generate Reports</button>
+    </div>
+
+    <div id="add-record" class="app-screen">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <button class="btn btn-ghost" onclick="showScreen('main-menu')">← Back to Menu</button>
+            <h2>Create Accounting Voucher</h2>
+            <button class="btn btn-primary" onclick="autoCopyDebitToCredit()">📋 Auto-Fill Credit Side</button>
+        </div>
+
+        <div class="voucher-grid">
+            <div class="card" style="border-top: 4px solid var(--debit-accent)">
+                <div class="form-section-title debit-header">Debit Section (Inflow)</div>
+                <div class="input-group">
+                    <label>Debit Date</label>
+                    <input type="date" id="dr-date" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label>Debit Account</label>
+                    <select id="dr-acc" class="input-field"></select>
+                </div>
+                <div class="input-group">
+                    <label>Sub-Account (Manual)</label>
+                    <input type="text" id="dr-sub-acc" class="input-field" placeholder="Enter sub-account manually">
+                </div>
+                <div class="input-group">
+                    <label>Description (Manual)</label>
+                    <input type="text" id="dr-desc" class="input-field" placeholder="Entry description">
+                </div>
+                <div class="input-group">
+                    <label>Debit Amount</label>
+                    <input type="number" id="dr-amount" class="input-field" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="card" style="border-top: 4px solid var(--credit-accent)">
+                <div class="form-section-title credit-header">Credit Section (Outflow)</div>
+                <div class="input-group">
+                    <label>Credit Date</label>
+                    <input type="date" id="cr-date" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label>Credit Account</label>
+                    <select id="cr-acc" class="input-field"></select>
+                </div>
+                <div class="input-group">
+                    <label>Sub-Account (Manual)</label>
+                    <input type="text" id="cr-sub-acc" class="input-field" placeholder="Enter sub-account manually">
+                </div>
+                <div class="input-group">
+                    <label>Description (Manual)</label>
+                    <input type="text" id="cr-desc" class="input-field" placeholder="Entry description">
+                </div>
+                <div class="input-group">
+                    <label>Credit Amount</label>
+                    <input type="number" id="cr-amount" class="input-field" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+            <div class="input-group">
+                <label>Main Narration (Common to both entries)</label>
+                <textarea id="narration" class="input-field" placeholder="Write final narration here..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>Voucher Status</label>
+                <input type="text" id="status" class="input-field" value="Posted">
+            </div>
+            <button class="btn btn-success" style="width:100%; height:60px;" onclick="saveVoucher()">💾 Save & Synchronize Voucher</button>
+        </div>
+    </div>
+
+    <div id="view-records" class="app-screen">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <button class="btn btn-ghost" onclick="showScreen('main-menu')">← Main Dashboard</button>
+            <h2>Ledger Records (Jurnal G Grid)</h2>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-ghost" onclick="exportPDF()">📄 Landscape PDF (A4)</button>
+                <button class="btn btn-success" onclick="exportExcel()">📊 Download Excel</button>
+            </div>
+        </div>
+
+        <div class="filter-panel">
+            <div style="flex:1; min-width:180px;">
+                <label style="font-size:0.9rem; font-weight:bold;">Date From</label>
+                <input type="date" id="filter-date-from" class="input-field">
+            </div>
+            <div style="flex:1; min-width:180px;">
+                <label style="font-size:0.9rem; font-weight:bold;">Date To</label>
+                <input type="date" id="filter-date-to" class="input-field">
+            </div>
+            <div style="flex:1; min-width:200px;">
+                <label style="font-size:0.9rem; font-weight:bold;">Filter Account</label>
+                <select id="filter-acc" class="input-field"><option value="">All Accounts</option></select>
+            </div>
+            <div style="flex:1; min-width:200px;">
+                <label style="font-size:0.9rem; font-weight:bold;">Filter Sub-Account</label>
+                <input type="text" id="filter-sub-acc" class="input-field" placeholder="Search sub account...">
+            </div>
+            <button class="btn btn-primary" onclick="applyAdvancedFilters()">Apply Filters</button>
+            <button class="btn btn-ghost" onclick="clearFilters()">Reset</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="journal-grid">
+                <thead>
+                    <tr id="header-row">
+                        <th data-col="Date">Date <button class="sort-btn" onclick="toggleSort('date')">⇅</button><br><input type="text" class="search-col" id="search-date" placeholder="Search Date..."></th>
+                        <th data-col="Account">Account <button class="sort-btn" onclick="toggleSort('account')">⇅</button><br><input type="text" class="search-col" id="search-account" placeholder="Search Account..."></th>
+                        <th data-col="SubAccount">Sub-Account <button class="sort-btn" onclick="toggleSort('sub')">⇅</button><br><input type="text" class="search-col" id="search-sub" placeholder="Search Sub..."></th>
+                        <th data-col="Description">Description <button class="sort-btn" onclick="toggleSort('desc')">⇅</button><br><input type="text" class="search-col" id="search-desc" placeholder="Search Desc..."></th>
+                        <th data-col="Debit">Debit <button class="sort-btn" onclick="toggleSort('debit')">⇅</button><br><input type="text" class="search-col" id="search-debit" placeholder="Search Debit..."></th>
+                        <th data-col="Credit">Credit <button class="sort-btn" onclick="toggleSort('credit')">⇅</button><br><input type="text" class="search-col" id="search-credit" placeholder="Search Credit..."></th>
+                        <th data-col="Ref">Ref <button class="sort-btn" onclick="toggleSort('ref')">⇅</button><br><input type="text" class="search-col" id="search-ref" placeholder="Search Ref..."></th>
+                        <th data-col="Narration">Narration <button class="sort-btn" onclick="toggleSort('narration')">⇅</button><br><input type="text" class="search-col" id="search-narration" placeholder="Search Narration..."></th>
+                        <th data-col="Status">Status <button class="sort-btn" onclick="toggleSort('status')">⇅</button><br><input type="text" class="search-col" id="search-status" placeholder="Search Status..."></th>
+                    </tr>
+                </thead>
+                <tbody id="grid-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="settings" class="app-screen">
+        <button class="btn btn-ghost" onclick="showScreen('main-menu')" style="margin-bottom:20px;">← Back to Menu</button>
+        <div class="card">
+            <h3>Manage Chart of Accounts (COA)</h3>
+            <p style="color:#5f6368;">All accounts are persistent and synchronized with Firebase Firestore Database.</p>
+            <div class="input-group">
+                <label>New Account Name</label>
+                <input type="text" id="new-acc-name" class="input-field" placeholder="e.g. Bank Alfalah, Cash Hand, Customer A">
+            </div>
+            <button class="btn btn-success" onclick="addNewAccount()">➕ Create Account</button>
+            
+            <hr style="margin:25px 0; border:0; border-top:1px solid var(--card-border);">
+            
+            <h4>Active Chart of Accounts:</h4>
+            <div id="active-coa-list" style="display:flex; flex-wrap:wrap; gap:10px;">
+                </div>
+        </div>
+    </div>
+
+</div>
+
 <script>
-    // --- 1. FIREBASE CONFIG ---
+    // --- FIREBASE SETUP ---
     const firebaseConfig = {
         apiKey: "AIzaSyDDrN7x1Gppn9rqgMwf6mfUh6Q9x_X5fQA",
         authDomain: "umair-account-personal.firebaseapp.com",
@@ -145,138 +423,390 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let allEntries = [];
-    let accountsList = [];
+    // Enable local caching/persistence
+    db.enablePersistence({ synchronizeTabs: true })
+     .then(() => console.log("Offline Persistence is Active!"))
+     .catch((err) => console.log("Persistence failed: ", err.code));
 
-    // Realtime Load Accounts from Firebase
-    db.collection("accounts").onSnapshot(snap => {
-        accountsList = snap.docs.map(doc => doc.data().name);
-        renderAccountList();
-    });
+    // Global App States
+    let allAccounts =;
+    let allEntries =;
+    let displayedEntries =;
+    let activeSortCol = null;
+    let sortDirection = true; // true = asc, false = desc
 
-    // Realtime Load Entries
-    db.collection("journal").orderBy("createdAt", "desc").onSnapshot(snap => {
-        allEntries = snap.docs.map(doc => doc.data());
-        renderTable(allEntries);
-    });
+    // Sync Connection Status
+    window.addEventListener('online',  () => document.getElementById('network-status').innerText = "Online 🛜");
+    window.addEventListener('offline', () => document.getElementById('network-status').innerText = "Offline 🚫");
 
-    // --- 2. AUTH ---
+    // --- CHECK LOGIN ---
     function checkLogin() {
-        if(document.getElementById('username').value === "Umair" && document.getElementById('password').value === "3599181") {
+        const u = document.getElementById('username').value.trim();
+        const p = document.getElementById('password').value.trim();
+        if (u === "Umair" && p === "3599181") {
             showScreen('main-menu');
-        } else { alert("Login Failed!"); }
-    }
-
-    function showScreen(id) {
-        document.querySelectorAll('.container > div').forEach(d => d.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(id === 'add-record') loadDropdowns();
-    }
-
-    // --- 3. ACCOUNTS LOGIC ---
-    async function saveAccountToFirebase() {
-        const name = document.getElementById('new-account').value;
-        if(name) {
-            await db.collection("accounts").add({ name: name });
-            document.getElementById('new-account').value = '';
-            alert("Account Synced to Cloud!");
+            loadDatabase();
+        } else {
+            alert("Ghalat Credentials! Dobara koshish karein.");
         }
     }
 
-    function renderAccountList() {
-        const listDiv = document.getElementById('firebase-acc-list');
-        listDiv.innerHTML = accountsList.map(a => `<span><b>• ${a}</b> </span>`).join(' | ');
+    // --- SCREEN NAVIGATION ---
+    function showScreen(screenId) {
+        document.querySelectorAll('.app-screen').forEach(screen => screen.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        
+        if (screenId === 'add-record') {
+            const today = new Date().toISOString().split('T');
+            document.getElementById('dr-date').value = today;
+            document.getElementById('cr-date').value = today;
+        }
+ // --- DATABASE LOAD ---
+    function loadDatabase() {
+        // Listening to Accounts
+        db.collection("accounts").orderBy("name").onSnapshot(snapshot => {
+            allAccounts = snapshot.docs.map(doc => doc.data().name);
+            updateAccountDropdowns();
+        });
+
+        // Listening to Journal entries
+        db.collection("journal").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+            allEntries = snapshot.docs.map(doc => doc.data());
+            displayedEntries = [...allEntries];
+            renderTableData(displayedEntries);
+            updateDashboardMetrics();
+        });
     }
 
-    function loadDropdowns() {
-        const drop = document.getElementById('acc-dropdown');
-        drop.innerHTML = accountsList.map(a => `<option value="${a}">${a}</option>`).join('');
-        const t = new Date();
-        document.getElementById('date').value = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear().toString().slice(-2)}`;
+    // Update Dropdown elements
+    function updateAccountDropdowns() {
+        const drDrop = document.getElementById('dr-acc');
+        const crDrop = document.getElementById('cr-acc');
+        const fDrop = document.getElementById('filter-acc');
+        
+        const optionsHTML = allAccounts.map(acc => `<option value="${acc}">${acc}</option>`).join('');
+        
+        drDrop.innerHTML = optionsHTML;
+        crDrop.innerHTML = optionsHTML;
+        fDrop.innerHTML = `<option value="">All Accounts</option>` + optionsHTML;
+
+        // Populate COA list in Settings
+        document.getElementById('active-coa-list').innerHTML = allAccounts.map(acc => `
+            <div class="card" style="padding:10px 15px; margin:0; display:flex; align-items:center; gap:10px;">
+                <span>📂 <b>${acc}</b></span>
+            </div>
+        `).join('');
     }
 
-    // --- 4. DOUBLE ENTRY SYSTEM ---
-    async function saveDoubleEntry() {
-        const baseData = {
-            date: document.getElementById('date').value,
-            account: document.getElementById('acc-dropdown').value,
-            sub: document.getElementById('sub-acc').value,
-            desc: document.getElementById('desc').value,
-            amt: Number(document.getElementById('amount').value),
-            narration: document.getElementById('narration').value,
-            status: document.getElementById('status').value,
+    // --- DOUBLE ENTRY FORM WORKFLOWS ---
+    function autoCopyDebitToCredit() {
+        document.getElementById('cr-date').value = document.getElementById('dr-date').value;
+        document.getElementById('cr-sub-acc').value = document.getElementById('dr-sub-acc').value;
+        document.getElementById('cr-desc').value = document.getElementById('dr-desc').value;
+        document.getElementById('cr-amount').value = document.getElementById('dr-amount').value;
+    }
+
+    async function saveVoucher() {
+        const drDate = document.getElementById('dr-date').value;
+        const drAcc = document.getElementById('dr-acc').value;
+        const drSub = document.getElementById('dr-sub-acc').value.trim();
+        const drDesc = document.getElementById('dr-desc').value.trim();
+        const drAmt = Number(document.getElementById('dr-amount').value);
+
+        const crDate = document.getElementById('cr-date').value;
+        const crAcc = document.getElementById('cr-acc').value;
+        const crSub = document.getElementById('cr-sub-acc').value.trim();
+        const crDesc = document.getElementById('cr-desc').value.trim();
+        const crAmt = Number(document.getElementById('cr-amount').value);
+
+        const narration = document.getElementById('narration').value.trim();
+        const status = document.getElementById('status').value.trim();
+
+        if (drAmt <= 0 || crAmt <= 0) {
+            return alert("Debit aur Credit amounts zero se bari honi chahiye!");
+        }
+
+        const totalRowDocsCount = allEntries.length; // Max sequential index tracker
+        const debitRef = totalRowDocsCount + 1;
+        const creditRef = totalRowDocsCount + 2;
+
+        const debitDoc = {
+            date: formatDateString(drDate),
+            account: drAcc,
+            sub: drSub,
+            desc: drDesc,
+            debit: drAmt,
+            credit: 0,
+            ref: debitRef,
+            narration: narration,
+            status: status,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        const type = document.getElementById('entry-type').value;
-        
-        if(type === 'dr-cr' || type === 'dr') {
-            await db.collection("journal").add({...baseData, debit: baseData.amt, credit: 0, ref: allEntries.length + 1 + " (Dr)"});
+        const creditDoc = {
+            date: formatDateString(crDate),
+            account: crAcc,
+            sub: crSub,
+            desc: crDesc,
+            debit: 0,
+            credit: crAmt,
+            ref: creditRef,
+            narration: narration,
+            status: status,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            await db.collection("journal").add(debitDoc);
+            await db.collection("journal").add(creditDoc);
+            alert(`Voucher Saved & Synced!\nDebit Ref: ${debitRef}, Credit Ref: ${creditRef}`);
+            
+            // Reset input values
+            document.getElementById('dr-amount').value = '';
+            document.getElementById('cr-amount').value = '';
+            document.getElementById('dr-sub-acc').value = '';
+            document.getElementById('cr-sub-acc').value = '';
+            document.getElementById('dr-desc').value = '';
+            document.getElementById('cr-desc').value = '';
+            document.getElementById('narration').value = '';
+            
+            showScreen('main-menu');
+        } catch (e) {
+            alert("Voucher sync failed: " + e.message);
         }
-        if(type === 'dr-cr' || type === 'cr') {
-            await db.collection("journal").add({...baseData, debit: 0, credit: baseData.amt, ref: allEntries.length + 2 + " (Cr)"});
-        }
-        
-        alert("Transaction Posted Successfully!");
-        showScreen('main-menu');
     }
 
-    // --- 5. VIEW & SEARCH ---
-    function renderTable(data) {
-        const tbody = document.getElementById('table-body');
+    function formatDateString(isoString) {
+        if (!isoString) return "";
+        const parts = isoString.split('-');
+        return `${parts[span_0](start_span)[span_0](end_span)}/${parts[span_2](start_span)[span_2](end_span)}/${parts.slice(-2)}`; // Return DD/MM/YY
+    }
+
+    // --- COA MANAGEMENT ---
+    async function addNewAccount() {
+        const name = document.getElementById('new-acc-name').value.trim();
+        if (!name) return alert("Account name khali nahi ho sakta!");
+        
+        try {
+            await db.collection("accounts").add({ name: name });
+            document.getElementById('new-acc-name').value = "";
+            alert(`Account "${name}" created on cloud!`);
+        } catch(e) {
+            alert("COA creation error: " + e.message);
+        }
+    }
+
+    // --- METRICS UPDATE ---
+    function updateDashboardMetrics() {
+        let totalDr = 0;
+        let totalCr = 0;
+        allEntries.forEach(e => {
+            totalDr += Number(e.debit) || 0;
+            totalCr += Number(e.credit) || 0;
+        });
+
+        document.getElementById('total-debits-display').innerText = "Rs. " + totalDr.toLocaleString();
+        document.getElementById('total-credits-display').innerText = "Rs. " + totalCr.toLocaleString();
+        document.getElementById('total-rows-display').innerText = allEntries.length;
+    }
+
+    // --- LEDGER TABLE RENDER ---
+    function renderTableData(data) {
+        const tbody = document.getElementById('grid-body');
         tbody.innerHTML = data.map(e => `
             <tr>
                 <td>${e.date}</td>
-                <td>${e.account}</td>
+                <td><b>${e.account}</b></td>
                 <td>${e.sub || '-'}</td>
-                <td>${e.debit}</td>
-                <td>${e.credit}</td>
-                <td>${e.ref}</td>
-                <td>${e.status}</td>
+                <td>${e.desc || '-'}</td>
+                <td style="color:var(--debit-accent); font-weight:bold;">${e.debit > 0? e.debit.toLocaleString() : '-'}</td>
+                <td style="color:var(--credit-accent); font-weight:bold;">${e.credit > 0? e.credit.toLocaleString() : '-'}</td>
+                <td><b>${e.ref}</b></td>
+                <td>${e.narration || '-'}</td>
+                <td>${e.status || '-'}</td>
             </tr>
         `).join('');
     }
 
-    function tableSearch(idx, input) {
-        const filter = input.value.toUpperCase();
-        const tr = document.getElementById("table-body").getElementsByTagName("tr");
-        for (let i = 0; i < tr.length; i++) {
-            const td = tr[i].getElementsByTagName("td")[idx];
-            if (td) {
-                tr[i].style.display = td.innerText.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+    // --- INTERACTIVE DRAG-TO-RESIZE COLUMN LOGIC ---
+    function initColumnResizer() {
+        const ths = document.querySelectorAll("#journal-grid th");
+        ths.forEach((th, index) => {
+            th.style.position = 'relative';
+            
+            // Check if user has previously saved width
+            const savedWidth = localStorage.getItem(`col-width-${th.dataset.col}`);
+            if (savedWidth) {
+                th.style.width = savedWidth;
             }
-        }
+
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            th.appendChild(resizer);
+
+            let startX, startWidth;
+
+            resizer.addEventListener('mousedown', (e) => {
+                startX = e.pageX;
+                startWidth = th.offsetWidth;
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+                e.preventDefault();
+            });
+
+            function handleMouseMove(e) {
+                const newWidth = startWidth + (e.pageX - startX);
+                th.style.width = newWidth + 'px';
+            }
+
+            function handleMouseUp() {
+                localStorage.setItem(`col-width-${th.dataset.col}`, th.style.width);
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+        });
     }
 
-    // --- 6. ADVANCED PDF REPORT ---
+    // --- SORTING ALGORITHM ---
+    function toggleSort(field) {
+        sortDirection = (activeSortCol === field)?!sortDirection : true;
+        activeSortCol = field;
+
+        displayedEntries.sort((a, b) => {
+            let valA = a[field] || '';
+            let valB = b[field] || '';
+            
+            if (field === 'debit' || field === 'credit' || field === 'ref') {
+                return sortDirection? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+            }
+            
+            return sortDirection? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+        });
+
+        renderTableData(displayedEntries);
+    }
+
+    // --- FILTER AND COLUMN SEARCH TRIGGERS ---
+    function applyAdvancedFilters() {
+        const filterStart = document.getElementById('filter-date-from').value;
+        const filterEnd = document.getElementById('filter-date-to').value;
+        const filterAcc = document.getElementById('filter-acc').value;
+        const filterSub = document.getElementById('filter-sub-acc').value.toLowerCase();
+
+        displayedEntries = allEntries.filter(e => {
+            // Account Filter
+            if (filterAcc && e.account!== filterAcc) return false;
+            
+            // Sub-Account Filter
+            if (filterSub && (!e.sub ||!e.sub.toLowerCase().includes(filterSub))) return false;
+
+            // Convert Jurnal G layout Date (DD/MM/YY) into JS parsable timestamps
+            if (filterStart || filterEnd) {
+                const dateParts = e.date.split('/');
+                if (dateParts.length === 3) {
+                    const year = 2000 + parseInt(dateParts);
+[span_1](start_span)[span_1](end_span)                    const month = parseInt(dateParts[span_3](start_span)[span_3](end_span)) - 1;
+                    const day = parseInt(dateParts);
+                    const entryTimestamp = new Date(year, month, day).getTime();
+
+                    if (filterStart) {
+                        const startTimestamp = new Date(filterStart).getTime();
+                        if (entryTimestamp < startTimestamp) return false;
+                    }
+                    if (filterEnd) {
+                        const endTimestamp = new Date(filterEnd).getTime();
+                        if (entryTimestamp > endTimestamp) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        renderTableData(displayedEntries);
+    }
+
+    function clearFilters() {
+        document.getElementById('filter-date-from').value = "";
+        document.getElementById('filter-date-to').value = "";
+        document.getElementById('filter-acc').value = "";
+        document.getElementById('filter-sub-acc').value = "";
+        
+        displayedEntries = [...allEntries];
+        renderTableData(displayedEntries);
+    }
+
+    // Text inputs listener for individual column searching
+    document.querySelectorAll('.search-col').forEach((input, index) => {
+        input.addEventListener('keyup', (e) => {
+            const val = e.target.value.toLowerCase();
+            const trs = document.getElementById('grid-body').getElementsByTagName('tr');
+            
+            for (let i = 0; i < trs.length; i++) {
+                const td = trs[i].getElementsByTagName('td')[index];
+                if (td) {
+                    const text = td.innerText || td.textContent;
+                    trs[i].style.display = text.toLowerCase().includes(val)? '' : 'none';
+                }
+            }
+        });
+    });
+
+    // --- RE-ALIGNMENT AT STARTUP ---
+    window.onload = () => {
+        initColumnResizer();
+    };
+
+    // --- LANDSCAPE A4 PDF GENERATION ---
     function exportPDF() {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const now = new Date().toLocaleString();
+        const doc = new jsPDF('l', 'mm', 'a4'); // Use Landscape format for Jurnal G
         
+        const currentSearchAcc = document.getElementById('filter-acc').value || "All Accounts";
+        const generationTime = new Date().toLocaleString();
+
+        // Header Structure
         doc.setFontSize(18);
-        doc.text("Jurnal G - Financial Report", 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Generated on: ${now}`, 14, 22);
-        
+        doc.text(`Jurnal G - Financial Account Report`, 14, 15);
+        doc.setFontSize(11);
+        doc.text(`Filter Account: ${currentSearchAcc}`, 14, 22);
+        doc.text(`Generated On: ${generationTime}`, 14, 28);
+
         doc.autoTable({
-            startY: 30,
-            head: [['Date', 'Account', 'Sub-Acc', 'Debit', 'Credit', 'Ref', 'Status']],
-            body: allEntries.map(e => [e.date, e.account, e.sub, e.debit, e.credit, e.ref, e.status]),
-            theme: 'striped',
-            headStyles: { fillColor: [26, 115, 232] }
+            startY: 34,
+            head:],
+            body: displayedEntries.map(e => [e.date, e.account, e.sub, e.desc, e.debit, e.credit, e.ref, e.narration, e.status]),
+            theme: 'grid',
+            headStyles: { fillColor: , fontSize: 9 },
+            styles: { fontSize: 8 },
+            margin: { left: 10, right: 10 }
         });
-        
+
+        // Loop to Add Footers across dynamic pages
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() - 30, doc.internal.pageSize.getHeight() - 10);
+        }
+
         doc.save(`Jurnal_Report_${Date.now()}.pdf`);
     }
 
     function exportExcel() {
-        const ws = XLSX.utils.json_to_sheet(allEntries);
+        const ws = XLSX.utils.json_to_sheet(displayedEntries);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Journal");
-        XLSX.writeFile(wb, "Journal_Data.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Jurnal_G");
+        XLSX.writeFile(wb, "Jurnal_Excel_Data.xlsx");
     }
 
+    // --- PWA SERVICE WORKER INITIALIZATION ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+           .then(reg => console.log('Service Worker Registered successfully: ', reg.scope))
+           .catch(err => console.log('Service Worker registration failed: ', err));
+    }
 </script>
+
 </body>
 </html>
